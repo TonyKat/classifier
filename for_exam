@@ -1,0 +1,99 @@
+from sklearn.datasets import fetch_20newsgroups                 # данные для примера
+from sklearn.feature_extraction.text import CountVectorizer     # Токенизация
+from sklearn.feature_extraction.text import TfidfTransformer    # tf и tf-idf
+from sklearn.naive_bayes import MultinomialNB                   # наивный байес
+from sklearn.pipeline import Pipeline                           # составной классификатор(чтобы сократить код)
+from sklearn.linear_model import SGDClassifier                  # метод опорных векторов
+from sklearn.linear_model import LogisticRegression             # Логистическая регрессия model = LogisticRegression()
+from sklearn.neighbors import KNeighborsClassifier              # K-ближайших соседей model = KNeighborsClassifier()
+from sklearn.tree import DecisionTreeClassifier                 # Деревья решений model = DecisionTreeClassifier()
+from sklearn.svm import SVC                                     # Метод опорных векторов model = SVC()
+from sklearn import metrics                                     # детальный анализ
+import numpy as np
+from time import time
+
+
+def read_text(file):    # чтение текста и запись в массив
+    length_file = len(file.readlines())
+    file.seek(0)
+    mas_text = []
+    for i in range(0, length_file):
+        mas_text.append(file.readline())
+    file.seek(0)
+    return mas_text
+
+
+def read_text_with_deletion_of_first_element(file): # чтение текста и запись в массив без категории
+    length_file = len(file.readlines())
+    file.seek(0)
+    mas_text = []
+    for i in range(0, length_file):
+        a = file_train.readline().strip().split()
+        a.pop(0)
+        c = ' '
+        a = c.join(a)
+        mas_text.append(a)
+    file.seek(0)
+    return mas_text
+
+
+def to_category_and_to_target(file): # получение списка категорий и списка меток категорий
+    category = []
+    target_of_category = []
+    length_file = len(file.readlines())
+    file.seek(0)
+    for i in range(0,length_file):
+        category.append(file.readline().strip().split()[0])
+        target_of_category.append(find_target(category[i]))
+    file.seek(0)
+    return category,target_of_category
+
+
+def find_target(word):  # поиск метки
+    for i in range(0,10):
+        if word == categories[i]:
+            return target[i]
+
+
+
+if __name__ == '__main__':
+    tic = time()
+    categories = ['science', 'style', 'culture', 'life', 'economics', 'business', 'travel', 'forces', 'media', 'sport']
+    target = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    file_train = open('C:\\Users\\SuperUser\\Desktop\\Теоретическая информатика - ЭКЗАМЕН\\task1\\news_train.txt',
+                      encoding='utf8')
+    file_for_train = open(
+        'C:\\Users\\SuperUser\\Desktop\\Теоретическая информатика - ЭКЗАМЕН\\task1\\news_test.txt',
+        encoding='utf8')
+    data = read_text_with_deletion_of_first_element(file_train) # данные без категории
+    data_for_training = read_text(file_for_train)               # данные, которые нужно предсказать
+    mas_categories, mas_target = to_category_and_to_target(file_train)  # получение массивов категорий и их меток
+    vectorizer = CountVectorizer()  # Токенизация - разбиение текста на токены(слова, фразы, символы)
+    x_train = vectorizer.fit_transform(data)  # Векторизатор строит словарь индексов признаков
+    # tf(d,w) - число вхождений слова w в документе d
+    # idf(w) = log(N/df(w)), где df(w) - число документов с w; N - число документво в коллекции
+    tfidf_transformer = TfidfTransformer()  # tf-idf - это обратная частота термина
+    x_train_tfidf = tfidf_transformer.fit_transform(x_train)
+    # метод опорных векторов
+    clf = SGDClassifier().fit(x_train_tfidf, mas_target) # обучение классификатора для предсказывания категории
+    #clf = LogisticRegression().fit(x_train_tfidf, mas_target) # обучение классификатора для предсказывания категории
+    # Pipeline - составной классификатор:
+    text_clf = Pipeline([('vectorizer', CountVectorizer()),
+                         ('tfidf', TfidfTransformer()),
+                         ('clf', SGDClassifier())])
+                         #('clf', LogisticRegression())])
+    # обучение
+    text_clf = text_clf.fit(data, mas_target)
+    # предсказания
+    predicted = text_clf.predict(data_for_training)
+    output_file = open('C:\\Users\\SuperUser\\Desktop\\Теоретическая информатика - ЭКЗАМЕН\\task1\\Predictions.txt','w')
+    # запись в файл предсказаний
+    for i in range(len(predicted)):
+        output_file.write(categories[predicted[i]]+'\n')
+    #(определение точности)tochnost = np.mean(predicted == mas_target1)
+    #print('Точность:',tochnost)
+    file_train.close()
+    file_for_train.close()
+    toc = time()
+    print('Время исполнения программы:', toc - tic)
+
